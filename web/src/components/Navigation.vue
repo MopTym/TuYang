@@ -13,13 +13,13 @@ nav.nav
   height: 3rem;
   background-color: #fff;
   box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-  z-index: 1;
+  z-index: 10;
 
   .logo {
     display: inline-block;
     width: 4rem;
     height: 2rem;
-    margin: 0.5rem 0 0 0.5rem;
+    margin: 0.5rem 0 0 0.6rem;
     background: url("../assets/images/logo.png") center center / contain no-repeat;
   }
 }

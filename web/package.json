@@ -10,9 +10,11 @@
   },
   "dependencies": {
     "avoscloud-sdk": "^0.6.9",
+    "ionicons": "^2.0.1",
     "normalize.css": "^3.0.3",
     "vue": "^1.0.16",
     "vue-router": "^0.7.11",
+    "vue-spinner": "^1.0.2",
     "vue-waterfall": "^0.1.0"
   },
   "devDependencies": {

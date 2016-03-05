@@ -9,7 +9,8 @@ import AV from 'avoscloud-sdk'
  * @return {Promise}
  */
 function getLastList () {
-  return AV.Cloud.run('getLastList')
+  let cql = 'select * from Post limit 42 order by -date'
+  return AV.Query.doCloudQuery(cql).then((res) => res.results)
 }
 
 export default { getLastList }

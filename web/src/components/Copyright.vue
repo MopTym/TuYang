@@ -1,5 +1,6 @@
 <template lang="jade">
-footer.footer 正在鸡飞狗跳开发中
+footer.footer
+  a(href="https://github.com/MopTym/TuYang") 间歇性开发中，呀啦那一卡？
 </template>
 
 <style lang="scss">

@@ -2,15 +2,19 @@
  * 抓取 RSS 数据
  */
 
+const URL = require('url')
 const http = require('http')
+const querystring = require('querystring')
 const cheerio = require('cheerio')
 const sizeOf = require('image-size')
+const config = require('../config')
 
 const Post = require('../dao/Post')
 
 const RSS_URL = 'http://www.lofter.com/tag/%E6%91%84%E5%BD%B1/rss'
 const TIMEOUT = 8000
 const THUMBNAIL_WIDTH = 400
+const QUALITY = 86
 const TRUTH = 42
 
 let isRunning = false
@@ -72,7 +76,7 @@ async function getItems (startDate) {
 async function resolveItem (item, $, startDate) {
   try {
     let $item = $(item)
-    let submitter = unescape($item.find('dc\\:creator').text())
+    let submitter = uncdata($item.find('dc\\:creator').html())
     let postUrl = $item.find('guid').text()
     let date = new Date($item.find('pubDate').text())
     let desc = $item.find('description').text()
@@ -80,8 +84,9 @@ async function resolveItem (item, $, startDate) {
     let imageUrl = imgs.first().attr('src')
     let multiple = imgs.length > 1
     if (imageUrl && date > startDate) {
-      let image = await resolveImage(imageUrl)
-      let thumbnail = await resolveThumbnail(image)
+      let url = imageUrl.replace(/\?.*/i, '')
+      let image = await resolveImage(url)
+      let thumbnail = await resolveThumbnail(url)
       return {
         submitter,
         postUrl,
@@ -103,10 +108,9 @@ async function resolveItem (item, $, startDate) {
  * 解析图片，获取尺寸信息
  */
 async function resolveImage (url) {
-  let finalUrl = url.replace(/thumbnail.+?\&/i, '')
-  let size = sizeOf(await getImageHead(finalUrl))
+  let size = sizeOf(await getImageHead(url))
   return {
-    url: finalUrl,
+    url: url,
     width: size.width,
     height: size.height
   }
@@ -115,8 +119,12 @@ async function resolveImage (url) {
 /**
  * 解析缩略图
  */
-async function resolveThumbnail (image) {
-  let finalUrl = image.url + '&thumbnail=' + THUMBNAIL_WIDTH + 'x0'
+async function resolveThumbnail (url) {
+  let finalUrl = url + '?' + querystring.stringify({
+    imageView: true,
+    thumbnail: THUMBNAIL_WIDTH + 'x0',
+    quality: QUALITY
+  })
   let size = sizeOf(await getImageHead(finalUrl))
   return {
     url: finalUrl,
@@ -131,7 +139,7 @@ async function resolveThumbnail (image) {
 function getImageHead (url) {
   return new Promise((resolve, reject) => {
     let chunks = [], len = 0
-    let req = http.request(url, (res) => {
+    let req = http.request(getRequestOptions(url), (res) => {
       if (res.statusCode === 200) {
         res.on('data', (chunk) => {
           chunks.push(chunk)
@@ -143,7 +151,7 @@ function getImageHead (url) {
         })
         res.on('end', () => resolve(Buffer.concat(chunks)))
       } else {
-        reject(new Error('statusCode error'))
+        reject(new Error('statusCode error' + res.statusCode))
       }
     })
     req.setTimeout(TIMEOUT, () => {
@@ -159,13 +167,13 @@ function getImageHead (url) {
  */
 function httpGet(url) {
   return new Promise((resolve, reject) => {
-    let req = http.request(url, (res) => {
+    let req = http.request(getRequestOptions(url), (res) => {
       if (res.statusCode === 200) {
         let data = ''
         res.on('data', (chunk) => data += chunk)
         res.on('end', () => resolve(data))
       } else {
-        reject(new Error('statusCode error'))
+        reject(new Error('statusCode error:' + res.statusCode))
       }
     })
     req.setTimeout(TIMEOUT, () => {
@@ -176,17 +184,20 @@ function httpGet(url) {
   })
 }
 
-/**
- * 转义字符有一些漏网之鱼
- */
-function unescape (str = '') {
-  let unescapes = [
-    { from: '#39', to: '\'' },
-    { from: 'middot', to: '·' }
-  ]
-  return unescapes.reduce((str, un) => {
-    return str.replace(new RegExp('\&' + un.from + '\;', 'ig'), un.to)
-  }, str)
+function getRequestOptions (url) {
+  let UrlInfo = URL.parse(url)
+  return {
+    protocol: UrlInfo.protocol,
+    host: UrlInfo.host,
+    path: UrlInfo.path,
+    headers: {
+      referer: config.referer
+    }
+  }
+}
+
+function uncdata (str = '') {
+  return str.replace(/<!\[CDATA\[([^\]]+)]\]>/ig, '$1')
 }
 
 module.exports = {

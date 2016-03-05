@@ -18,7 +18,9 @@ let config = {
     // 以下两个是在 LeanCloud 中配置的 host
     'http://stg-tuyang.leanapp.cn',
     'http://tuyang.leanapp.cn'
-  ]
+  ],
+
+  referer: 'http://tuyang.leanapp.cn'
 }
 
 // 判断环境
